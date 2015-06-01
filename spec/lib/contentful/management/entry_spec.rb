@@ -608,6 +608,67 @@ module Contentful
         end
       end
 
+      describe '#fields_for_query' do
+
+        it 'includes all kind of fields' do
+
+          location = Location.new.tap do |location|
+            location.lat = 22.44
+            location.lon = 33.33
+          end
+
+          attributes = {
+            'en-US' => {
+              name: 'Test name',
+              number: 30,
+              float1: 1.1,
+              boolean: true,
+              date: '2000-07-12T11:11:00+02:00',
+              time: '2000-07-12T11:11:00+02:00',
+              location: location,
+              image: Asset.new,
+              images: [Asset.new, Asset.new],
+              array: %w(PL USD XX),
+              entry: Entry.new,
+              entries: [Entry.new, Entry.new],
+              object_json: {'test' => {'@type' => 'Codequest'}}
+            }
+          }
+
+          entry = Entry.new
+          entry.instance_variable_set(:@fields, attributes)
+
+          fields_hash = entry.fields_for_query
+
+          expect(fields_hash[:name]).to match('en-US' => 'Test name')
+          expect(fields_hash[:number]).to match('en-US' => 30)
+          expect(fields_hash[:float1]).to match('en-US' => 1.1)
+          expect(fields_hash[:boolean]).to match('en-US' => true)
+          expect(fields_hash[:date]).to match('en-US' => '2000-07-12T11:11:00+02:00')
+          expect(fields_hash[:time]).to match('en-US' => '2000-07-12T11:11:00+02:00')
+          expect(fields_hash[:location]).to match('en-US' => {lat: 22.44, lon: 33.33})
+          expect(fields_hash[:array]).to match('en-US' => %w(PL USD XX))
+          expect(fields_hash[:object_json]).to match('en-US' => {'test' => {'@type' => 'Codequest'}})
+          expect(fields_hash[:image]).to match('en-US' => {sys: {type: 'Link', linkType: 'Asset', id: nil}})
+          expect(fields_hash[:images]).to match('en-US' => [{sys: {type: 'Link', linkType: 'Asset', id: nil}}, {sys: {type: 'Link', linkType: 'Asset', id: nil}}])
+          expect(fields_hash[:entry]).to match('en-US' => {sys: {type: 'Link', linkType: 'Entry', id: nil}})
+          expect(fields_hash[:entries]).to match('en-US' => [{sys: {type: 'Link', linkType: 'Entry', id: nil}}, {sys: {type: 'Link', linkType: 'Entry', id: nil}}])
+        end
+
+        it 'includes boolean with false value' do
+          attributes = {
+            'en-US' => { boolean: false }
+          }
+
+          entry = Entry.new
+          entry.instance_variable_set(:@fields, attributes)
+
+          fields_hash = entry.fields_for_query
+
+          expect(fields_hash[:boolean]).to match('en-US' => false)
+        end
+      end
+
       describe '#fields_from_attributes' do
 
         it 'parses all kind of fields' do
